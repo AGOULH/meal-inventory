@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>مخزون الوجبات — بنك الدم</title>
+
+<!-- PWA -->
+<meta name="application-name" content="مخزون الوجبات">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مخزون الوجبات">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#006847">
+<meta name="description" content="نظام إدارة مخزون الوجبات — بنك الدم المركزي الدمام">
+
+<!-- PWA Icons (inline SVG as data URL) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23006847'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle' fill='white'%3E🩸%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23006847'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle' fill='white'%3E🩸%3C/text%3E%3C/svg%3E">
+
+<!-- Manifest inline -->
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22%D9%86%D8%B8%D8%A7%D9%85%20%D9%85%D8%AE%D8%B2%D9%88%D9%86%20%D8%A7%D9%84%D9%88%D8%AC%D8%A8%D8%A7%D8%AA%22%2C%22short_name%22%3A%22%D9%85%D8%AE%D8%B2%D9%88%D9%86%20%D8%A7%D9%84%D9%88%D8%AC%D8%A8%D8%A7%D8%AA%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f0f5f2%22%2C%22theme_color%22%3A%22%23006847%22%2C%22orientation%22%3A%22portrait%22%2C%22lang%22%3A%22ar%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%3D'0%25200%2520512%2520512'%253E%253Crect%2520width%3D'512'%2520height%3D'512'%2520rx%3D'100'%2520fill%3D'%2523006847'%2F%253E%253Ctext%2520x%3D'256'%2520y%3D'340'%2520font-size%3D'260'%2520text-anchor%3D'middle'%2520fill%3D'white'%253E%25F0%259F%25A9%25B8%253C%2FText%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#006847;--gl:#009962;--gd:#004d35;--ga:#00b377;
+  --gold:#c8a84b;--bg:#f0f5f2;--card:#fff;
+  --tx:#1a2e26;--tx2:#4a6259;--bd:#d0e6dd;
+  --red:#c0392b;--blue:#1d4ed8;--ora:#d97706;--pur:#7c3aed;--teal:#0891b2;
+}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;min-height:100vh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:linear-gradient(135deg,var(--gd),var(--g));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;color:#fff;gap:16px}
+.spin{width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{font-size:14px;opacity:0.85}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));display:none;align-items:center;justify-content:center;z-index:9999}
+#login-screen.show{display:flex}
+.login-box{background:#fff;border-radius:18px;padding:36px 40px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center}
+.login-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--gd),var(--g));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;color:#fff}
+.login-box h2{font-size:17px;font-weight:700;color:var(--gd);margin-bottom:4px}
+.login-box p{font-size:11px;color:var(--tx2);margin-bottom:24px}
+.lf{position:relative;margin-bottom:14px}
+.lf input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;direction:rtl;transition:border 0.2s;color:var(--tx)}
+.lf input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(0,104,71,0.12)}
+.lf .fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#aaa;font-size:16px}
+.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;margin-top:4px}
+.btn-login:hover{opacity:0.9}
+.lerr{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:7px;padding:8px 12px;font-size:12px;margin-top:10px;display:none}
+.lerr.show{display:block}
+
+/* APP */
+#app{display:none}
+#app.show{display:block}
+.header{background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));color:#fff;padding:13px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,104,71,0.3)}
+.logo-c{width:46px;height:46px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.35);font-size:20px;flex-shrink:0}
+.hd-title h1{font-size:15px;font-weight:700;margin-bottom:1px}
+.hd-title p{font-size:10px;opacity:0.82}
+.hd-right{margin-right:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hd-chip{font-size:11px;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;color:#fff}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0}
+.sync-dot.syncing{background:#fbbf24;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.btn-logout{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit;display:flex;align-items:center;gap:4px}
+.btn-logout:hover{background:rgba(255,255,255,0.25)}
+
+/* NAV */
+.nav-tabs{background:var(--g);display:flex;overflow-x:auto;box-shadow:0 2px 6px rgba(0,0,0,0.12)}
+.nav-tab{padding:10px 18px;color:rgba(255,255,255,0.7);cursor:pointer;font-size:12px;font-weight:500;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.18s;display:flex;align-items:center;gap:5px;user-select:none}
+.nav-tab.active{color:#fff;border-bottom-color:var(--gold);background:rgba(255,255,255,0.1)}
+.nav-tab:hover{color:#fff;background:rgba(255,255,255,0.07)}
+.admin-only{display:none}
+
+/* PAGES */
+.page{display:none;padding:16px 18px;max-width:1200px;margin:0 auto}
+.page.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* CARDS */
+.card{background:var(--card);border-radius:10px;border:1px solid var(--bd);overflow:hidden;box-shadow:0 1px 4px rgba(0,104,71,0.06)}
+.ch{padding:11px 15px;font-weight:600;font-size:12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;background:#fafdfb;justify-content:space-between}
+.ch-l{display:flex;align-items:center;gap:7px}
+.ch i{color:var(--g);font-size:16px}
+.cb{padding:15px}
+
+/* BANNER */
+.banner{background:linear-gradient(135deg,var(--gd),var(--g));border-radius:12px;padding:18px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;box-shadow:0 3px 14px rgba(0,104,71,0.22)}
+.bn-l{display:flex;align-items:center;gap:14px}
+.bn-icon{width:54px;height:54px;background:rgba(255,255,255,0.18);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.bn-num{font-size:40px;font-weight:800;line-height:1}
+.bn-lbl{font-size:11px;opacity:0.82;margin-top:3px}
+.bn-r{text-align:left;line-height:1.9;font-size:11px;opacity:0.82}
+.bn-r strong{font-size:13px;opacity:1}
+
+/* STAT */
+.sc{background:var(--card);border-radius:10px;border:1px solid var(--bd);padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,104,71,0.06)}
+.si{width:44px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.si.gr{background:#e0f5eb;color:var(--g)}.si.bl{background:#dbeafe;color:var(--blue)}.si.or{background:#fef3e8;color:var(--ora)}.si.re{background:#fee2e2;color:var(--red)}
+.sv{font-size:24px;font-weight:700;line-height:1;color:var(--tx)}
+.sl{font-size:11px;color:var(--tx2);margin-top:2px}
+
+/* DEPT MINI */
+.dm-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.dm{border-radius:10px;border:1px solid var(--bd);padding:13px 15px;background:#fff;box-shadow:0 1px 4px rgba(0,104,71,0.06)}
+.dm-name{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.dm-name .dot{width:9px;height:9px;border-radius:50%}
+.dm-num{font-size:24px;font-weight:800;color:var(--tx);line-height:1}
+.dm-sub{font-size:10px;color:var(--tx2);margin-top:2px}
+
+/* ITEM ROW */
+.item-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.im{border-radius:10px;border:1px solid var(--bd);padding:13px 15px;background:#fff;text-align:center}
+.im-icon{font-size:24px;margin-bottom:4px}
+.im-num{font-size:22px;font-weight:700;line-height:1}
+.im-sub{font-size:10px;color:var(--tx2);margin-top:3px}
+
+/* BARS */
+.db{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.dn{width:90px;font-size:11px;color:var(--tx2);text-align:right;flex-shrink:0}
+.bw{flex:1;background:#e0ede8;border-radius:20px;height:18px;overflow:hidden}
+.bf{height:100%;border-radius:20px;transition:width 0.7s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font-size:10px;color:#fff;font-weight:700;min-width:2px}
+.bf.g{background:var(--g)}.bf.t{background:var(--teal)}.bf.p{background:var(--pur)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--g);color:#fff;padding:8px 11px;text-align:right;font-weight:500;font-size:11px}
+td{padding:8px 11px;border-bottom:1px solid var(--bd);color:var(--tx);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:#f7fbf9}
+tr:hover td{background:#eef7f3}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.bg{background:#dcfce7;color:#166534}.bt{background:#dbeafe;color:#1e40af}.bp{background:#ede9fe;color:#5b21b6}.ba{background:#fef3e8;color:#92400e}
+
+/* FORMS */
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:0}
+.fg label{font-size:11px;color:var(--tx2);font-weight:600}
+select,input[type=number],input[type=text],input[type=date],input[type=password]{width:100%;padding:8px 11px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;font-family:inherit;direction:rtl;background:#fff;color:var(--tx);transition:border 0.2s}
+select:focus,input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(0,104,71,0.1)}
+.btn{padding:9px 18px;border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all 0.18s;display:inline-flex;align-items:center;gap:5px;background:#fff;color:var(--tx)}
+.btn:hover{background:#f0f5f2}
+.btn-g{background:var(--g);color:#fff;border-color:var(--g)}.btn-g:hover{background:var(--gd)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}.btn-gold:hover{background:#a8892e}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}.btn-red:hover{background:#a93226}
+.btn-blue{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-blue:hover{background:#1e3a8a}
+.btn-sm{padding:5px 11px;font-size:11px}
+.msg{padding:8px 13px;border-radius:7px;font-size:12px;margin-top:9px;display:none;font-weight:500}
+.msg.ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;display:block}
+.msg.er{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;display:block}
+
+/* DEPT SELECTOR */
+.dcards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.dcard{border-radius:9px;border:2px solid var(--bd);padding:13px 8px;cursor:pointer;transition:all 0.16s;background:#fff;text-align:center;user-select:none}
+.dcard:hover{border-color:var(--ga);background:#f0faf5}
+.dcard.sel{border-color:var(--g);background:#e8f5ee;box-shadow:0 0 0 3px rgba(0,104,71,0.12)}
+.dcard .dci{font-size:24px;margin-bottom:4px}
+.dcard .dcn{font-size:12px;font-weight:700;color:var(--tx)}
+.dcard .dcs{font-size:10px;color:var(--tx2);margin-top:2px}
+
+/* AVAIL */
+.ab-box{background:linear-gradient(135deg,#e8f5ee,#d0eadd);border:1.5px solid var(--ga);border-radius:9px;padding:11px 15px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between}
+.ab-lbl{font-size:11px;color:var(--tx2);font-weight:600}
+.ab-num{font-size:22px;font-weight:800;color:var(--g)}
+.ab-num.low{color:var(--ora)}.ab-num.empty{color:var(--red)}
+
+/* INFO */
+.inote{background:#e8f5ee;border:1px solid #a7d9bb;border-radius:7px;padding:9px 13px;font-size:11px;color:var(--gd);margin-bottom:13px;display:flex;align-items:flex-start;gap:7px}
+.inote i{font-size:14px;flex-shrink:0;margin-top:1px;color:var(--g)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:8000;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:13px;padding:26px 28px;width:420px;max-width:95vw;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+.modal h3{font-size:15px;font-weight:700;color:var(--gd);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* LOG */
+.log-wrap{max-height:320px;overflow-y:auto}
+.log-wrap::-webkit-scrollbar{width:4px}
+.log-wrap::-webkit-scrollbar-thumb{background:var(--g);border-radius:4px}
+.total-row td{background:#e0f5eb!important;font-weight:700;color:var(--gd)}
+.empty-st{text-align:center;color:#aaa;padding:22px;font-size:12px}
+.empty-st i{font-size:30px;color:#ddd;display:block;margin-bottom:6px}
+
+/* MONTH NAV */
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.mnav{display:flex;align-items:center;gap:7px}
+.mnav button{padding:5px 13px;border:1.5px solid var(--bd);background:#fff;border-radius:7px;cursor:pointer;font-size:11px;color:var(--tx2);font-family:inherit;transition:all 0.14s}
+.mnav button:hover{background:var(--g);color:#fff;border-color:var(--g)}
+
+@media(max-width:700px){
+  .g2,.g3,.g4,.dcards,.dm-row,.item-row{grid-template-columns:1fr}
+  .fr{grid-template-columns:1fr}
+  .hd-right .hd-date{display:none}
+  .banner{flex-direction:column;gap:10px}.bn-r{text-align:right}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="spin"></div>
+  <p>جاري تحميل البيانات المشتركة...</p>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><i class="ti ti-building-hospital"></i></div>
+    <h2>نظام مخزون الوجبات</h2>
+    <p>بنك الدم المركزي — الدمام</p>
+    <div class="lf"><i class="ti ti-user fi"></i><input type="text" id="l-user" placeholder="اسم المستخدم" autocomplete="off"></div>
+    <div class="lf"><i class="ti ti-lock fi"></i><input type="password" id="l-pass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn-login" onclick="doLogin()"><i class="ti ti-login"></i> دخول</button>
+    <div class="lerr" id="login-err">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#aaa;text-align:center;line-height:1.8">
+      <div>تصميم وإعداد</div>
+      <div style="font-weight:600;color:#006847;font-size:12px">Hasan Alagoul</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="logo-c"><i class="ti ti-building-hospital"></i></div>
+    <div class="hd-title">
+      <h1>🩸 نظام إدارة مخزون الوجبات</h1>
+      <p>بنك الدم المركزي — المنطقة الشرقية (الدمام) | وزارة الصحة السعودية</p>
+    </div>
+    <div class="hd-right">
+      <div class="hd-chip"><div class="sync-dot" id="sync-dot"></div><span id="sync-lbl">متصل</span></div>
+      <div class="hd-chip"><i class="ti ti-user-circle"></i><span id="hd-username"></span></div>
+      <div class="hd-chip" id="hd-date" style="font-size:10px"></div>
+      <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
+      <button id="pwa-install-btn" onclick="installPWA()" style="display:none;background:var(--gold);border:none;color:#fff;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit;align-items:center;gap:4px"><i class="ti ti-download"></i> تثبيت التطبيق</button>
+      <div style="font-size:10px;opacity:0.7;color:#fff;text-align:center;line-height:1.4">تصميم وإعداد<br><span style="font-weight:700;font-size:11px;opacity:1">Hasan Alagoul</span></div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> لوحة التحكم</div>
+    <div class="nav-tab" onclick="showPage('dispatch',this)"><i class="ti ti-send"></i> الصرف</div>
+    <div class="nav-tab" onclick="showPage('stock',this)"><i class="ti ti-package-import"></i> المخزون</div>
+    <div class="nav-tab admin-only" onclick="showPage('employees',this)"><i class="ti ti-users"></i> الموظفون</div>
+    <div class="nav-tab admin-only" onclick="showPage('users',this)"><i class="ti ti-shield-lock"></i> المستخدمون</div>
+    <div class="nav-tab" onclick="showPage('reports',this)"><i class="ti ti-report-analytics"></i> التقارير</div>
+    <div class="nav-tab admin-only" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> الإعدادات</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="banner">
+      <div class="bn-l">
+        <div class="bn-icon"><i class="ti ti-packages"></i></div>
+        <div><div class="bn-num" id="db-avail">0</div><div class="bn-lbl">الرصيد الإجمالي المتاح (جميع الأصناف)</div></div>
+      </div>
+      <div class="bn-r">
+        <div>مستلم: <strong id="db-recv">0</strong></div>
+        <div>مصروف: <strong id="db-disp">0</strong></div>
+        <div>صرف هذا الشهر: <strong id="db-month">0</strong></div>
+      </div>
+    </div>
+    <div class="item-row" id="item-stats"></div>
+    <div class="dm-row" id="dept-stats"></div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-chart-pie"></i> صرف هذا الشهر / قسم</div></div>
+        <div class="cb"><div style="position:relative;height:175px"><canvas id="pieChart"></canvas></div><div id="pie-legend" style="margin-top:8px"></div></div>
+      </div>
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-building"></i> نسبة صرف كل قسم</div></div>
+        <div class="cb" id="dept-bars" style="padding-top:10px"></div>
+      </div>
+    </div>
+    <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-chart-bar"></i> إجمالي الصرف لكل موظف</div></div>
+      <div class="cb"><div style="position:relative;height:200px"><canvas id="empChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- DISPATCH -->
+  <div id="page-dispatch" class="page">
+    <div class="g2">
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-send"></i> صرف أصناف</div></div><div class="cb">
+        <div class="inote"><i class="ti ti-info-circle"></i><span>الصرف يُخصم من مخزون الصنف ويُسجَّل على القسم المختار.</span></div>
+        <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:8px">اختر القسم *</div>
+        <div class="dcards" id="dept-cards"></div>
+        <div class="ab-box">
+          <div class="ab-lbl"><i class="ti ti-package" style="vertical-align:-2px;margin-left:4px"></i>رصيد الصنف المختار</div>
+          <div class="ab-num" id="disp-avail">اختر القسم أولاً</div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>الصنف *</label>
+            <select id="disp-item" onchange="updateAvailBox()">
+              <option value="وجبات">🍱 وجبات</option>
+              <option value="عصير">🧃 عصير</option>
+              <option value="ماء">💧 ماء</option>
+            </select>
+          </div>
+          <div class="fg"><label>اسم الموظف *</label><select id="disp-emp"><option value="">-- اختر --</option></select></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>الكمية *</label><input type="number" id="disp-qty" min="1" placeholder="0"></div>
+          <div class="fg"><label>التاريخ</label><input type="date" id="disp-date"></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px"><label>ملاحظة</label><input type="text" id="disp-note" placeholder="اختياري"></div>
+        <button class="btn btn-g" onclick="doDispatch()" style="width:100%"><i class="ti ti-check"></i> تأكيد الصرف</button>
+        <div id="disp-msg" class="msg"></div>
+      </div></div>
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-list-details"></i> آخر عمليات الصرف</div></div>
+        <div class="log-wrap"><table><thead><tr><th>الموظف</th><th>القسم</th><th>الصنف</th><th>الكمية</th><th>التاريخ</th></tr></thead>
+        <tbody id="log-tb"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div id="page-stock" class="page">
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-plus"></i> إضافة مخزون</div></div><div class="cb">
+        <div class="inote"><i class="ti ti-info-circle"></i><span>اختر الصنف والكمية — يُضاف للمخزون المشترك ويُتاح للصرف لجميع الأقسام.</span></div>
+        <div class="fg" style="margin-bottom:11px"><label>الصنف *</label>
+          <select id="stk-item">
+            <option value="وجبات">🍱 وجبات</option>
+            <option value="عصير">🧃 عصير</option>
+            <option value="ماء">💧 ماء</option>
+          </select>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>الكمية *</label><input type="number" id="stk-qty" min="1" placeholder="0"></div>
+          <div class="fg"><label>التاريخ</label><input type="date" id="stk-date"></div>
+        </div>
+        <div class="fg" style="margin-bottom:14px"><label>المصدر / الملاحظة</label><input type="text" id="stk-note" placeholder="مثال: دفعة مايو 2026"></div>
+        <button class="btn btn-gold" onclick="doAddStock()" style="width:100%"><i class="ti ti-package-import"></i> إضافة للمخزون</button>
+        <div id="stk-msg" class="msg"></div>
+      </div></div>
+
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-database"></i> الرصيد الحالي</div></div><div class="cb">
+        <div style="background:linear-gradient(135deg,var(--gd),var(--g));border-radius:10px;padding:14px 18px;color:#fff;margin-bottom:13px;display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:10px;opacity:0.8;margin-bottom:3px">الرصيد الإجمالي المتاح</div><div style="font-size:36px;font-weight:800" id="stk-avail-big">0</div><div style="font-size:10px;opacity:0.7">وحدة</div></div>
+          <div style="text-align:left;font-size:11px;opacity:0.88;line-height:1.9"><div>مستلم: <strong id="stk-recv-tot">0</strong></div><div>مصروف: <strong id="stk-disp-tot">0</strong></div></div>
+        </div>
+        <div id="stk-items-detail"></div>
+      </div></div>
+    </div>
+
+    <!-- تعديل المخزون -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch"><div class="ch-l"><i class="ti ti-edit"></i> تعديل الرصيد</div></div>
+      <div class="cb">
+        <div class="inote" style="background:#fef3e8;border-color:#fed7aa"><i class="ti ti-alert-triangle" style="color:var(--ora)"></i><span>يُستخدم للتصحيح فقط — يُسجَّل في سجل التعديلات.</span></div>
+        <div class="fr">
+          <div class="fg"><label>الصنف *</label>
+            <select id="adj-item">
+              <option value="وجبات">🍱 وجبات</option>
+              <option value="عصير">🧃 عصير</option>
+              <option value="ماء">💧 ماء</option>
+            </select>
+          </div>
+          <div class="fg"><label>نوع التعديل</label>
+            <select id="adj-type">
+              <option value="set">ضبط على قيمة محددة</option>
+              <option value="add">إضافة كمية</option>
+              <option value="sub">خصم كمية</option>
+            </select>
+          </div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>الكمية *</label><input type="number" id="adj-qty" min="0" placeholder="0"></div>
+          <div class="fg"><label>سبب التعديل *</label><input type="text" id="adj-reason" placeholder="أدخل السبب..."></div>
+        </div>
+        <button class="btn btn-blue" onclick="doAdjust()"><i class="ti ti-adjustments"></i> تطبيق التعديل</button>
+        <div id="adj-msg" class="msg"></div>
+      </div>
+    </div>
+
+    <!-- سجل الاستلام -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch"><div class="ch-l"><i class="ti ti-history"></i> سجل استلام المخزون</div></div>
+      <div style="overflow-y:auto;max-height:240px">
+        <table><thead><tr><th>الصنف</th><th>الكمية</th><th>المصدر</th><th>التاريخ</th><th>بواسطة</th></tr></thead>
+        <tbody id="recv-tb"></tbody></table>
+      </div>
+    </div>
+
+    <!-- سجل التعديلات -->
+    <div class="card">
+      <div class="ch"><div class="ch-l"><i class="ti ti-adjustments"></i> سجل التعديلات</div></div>
+      <div style="overflow-y:auto;max-height:200px">
+        <table><thead><tr><th>الصنف</th><th>النوع</th><th>الكمية</th><th>السبب</th><th>التاريخ</th><th>بواسطة</th></tr></thead>
+        <tbody id="adj-tb"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <div id="page-employees" class="page">
+    <div class="g2">
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-users"></i> قائمة الموظفين</div></div>
+        <div class="cb"><table><thead><tr><th>#</th><th>الاسم</th><th>القسم</th><th>وجبات مصروفة</th><th></th></tr></thead>
+        <tbody id="emp-tb"></tbody></table></div>
+      </div>
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-user-plus"></i> إضافة موظف جديد</div></div><div class="cb">
+        <div class="fg" style="margin-bottom:11px"><label>اسم الموظف *</label><input type="text" id="ne-name" placeholder="الاسم الكامل"></div>
+        <div class="fg" style="margin-bottom:14px"><label>القسم</label>
+          <select id="ne-dept">
+            <option value="القسم">القسم</option>
+            <option value="الحملات">الحملات</option>
+            <option value="مركز دمي">مركز دمي</option>
+          </select>
+        </div>
+        <button class="btn btn-g" onclick="doAddEmp()"><i class="ti ti-plus"></i> إضافة الموظف</button>
+        <div id="emp-msg" class="msg"></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- USERS -->
+  <div id="page-users" class="page">
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-shield-lock"></i> قائمة المستخدمين</div></div>
+        <div class="cb"><table><thead><tr><th>المستخدم</th><th>الصلاحية</th><th>الاسم الكامل</th><th></th></tr></thead>
+        <tbody id="users-tb"></tbody></table></div>
+      </div>
+      <div class="card"><div class="ch"><div class="ch-l"><i class="ti ti-user-plus"></i> إضافة مستخدم جديد</div></div><div class="cb">
+        <div class="fr">
+          <div class="fg"><label>اسم المستخدم *</label><input type="text" id="nu-user" placeholder="username"></div>
+          <div class="fg"><label>الاسم الكامل</label><input type="text" id="nu-full" placeholder="الاسم الظاهر"></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>كلمة المرور *</label><input type="password" id="nu-pass" placeholder="••••••"></div>
+          <div class="fg"><label>الصلاحية</label>
+            <select id="nu-role"><option value="user">مستخدم عادي</option><option value="admin">مدير (Admin)</option></select>
+          </div>
+        </div>
+        <button class="btn btn-g" onclick="doAddUser()"><i class="ti ti-plus"></i> إضافة المستخدم</button>
+        <div id="user-msg" class="msg"></div>
+      </div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ch-l"><i class="ti ti-key"></i> تغيير كلمة المرور</div></div>
+      <div class="cb">
+        <div class="fr">
+          <div class="fg"><label>المستخدم</label><select id="chpw-user"></select></div>
+          <div class="fg"><label>كلمة المرور الجديدة *</label><input type="password" id="chpw-pass" placeholder="••••••"></div>
+        </div>
+        <button class="btn btn-blue btn-sm" onclick="doChangePw()"><i class="ti ti-lock"></i> تغيير كلمة المرور</button>
+        <div id="chpw-msg" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div id="page-reports" class="page">
+    <div class="mhdr">
+      <div style="font-size:13px;font-weight:700;color:var(--gd)">تقرير الاستهلاك الشهري</div>
+      <div class="mnav">
+        <button onclick="chMonth(-1)">&#8594; السابق</button>
+        <span id="month-lbl" style="padding:6px 16px;background:var(--g);color:#fff;border-radius:7px;font-size:12px;font-weight:700;min-width:130px;text-align:center;display:inline-block"></span>
+        <button onclick="chMonth(1)">التالي &#8592;</button>
+      </div>
+    </div>
+    <div class="g3" style="margin-bottom:13px">
+      <div class="sc"><div class="si gr"><i class="ti ti-calendar"></i></div><div><div class="sv" id="rep-tot">0</div><div class="sl">إجمالي الصرف في الشهر</div></div></div>
+      <div class="sc"><div class="si bl"><i class="ti ti-user"></i></div><div><div class="sv" id="rep-emp" style="font-size:14px">—</div><div class="sl">أعلى موظف</div></div></div>
+      <div class="sc"><div class="si or"><i class="ti ti-building"></i></div><div><div class="sv" id="rep-dept" style="font-size:14px">—</div><div class="sl">أعلى قسم</div></div></div>
+    </div>
+    <div class="dm-row" id="rep-dept-row"></div>
+    <div class="item-row" id="rep-item-row"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch"><div class="ch-l"><i class="ti ti-table"></i> تفاصيل الصرف</div></div>
+      <div class="cb"><table><thead><tr><th>الموظف</th><th>القسم</th><th>الصنف</th><th>عدد العمليات</th><th>إجمالي الوجبات</th></tr></thead>
+      <tbody id="rep-tb"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ch-l"><i class="ti ti-chart-line"></i> الصرف اليومي</div></div>
+      <div class="cb"><div style="position:relative;height:200px"><canvas id="dailyChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ch-l"><i class="ti ti-info-circle"></i> معلومات النظام</div></div>
+        <div class="cb">
+          <table>
+            <tr><td style="font-weight:600;width:160px;padding:8px 10px">قاعدة البيانات</td><td style="padding:8px 10px"><span class="badge bg">Firebase Firestore ☁️</span></td></tr>
+            <tr><td style="font-weight:600;padding:8px 10px">البيانات مشتركة</td><td style="padding:8px 10px"><span class="badge bg">✓ نعم — لجميع المستخدمين</span></td></tr>
+            <tr><td style="font-weight:600;padding:8px 10px">عمليات الصرف</td><td id="inf-d" style="padding:8px 10px">0</td></tr>
+            <tr><td style="font-weight:600;padding:8px 10px">سجلات الاستلام</td><td id="inf-r" style="padding:8px 10px">0</td></tr>
+            <tr><td style="font-weight:600;padding:8px 10px">الموظفون</td><td id="inf-e" style="padding:8px 10px">0</td></tr>
+            <tr><td style="font-weight:600;padding:8px 10px">المستخدمون</td><td id="inf-u" style="padding:8px 10px">0</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="border-color:#fecaca">
+        <div class="ch" style="border-color:#fecaca;background:#fff5f5"><div class="ch-l"><i class="ti ti-alert-triangle" style="color:var(--red)"></i><span style="color:var(--red)">منطقة الخطر</span></div></div>
+        <div class="cb">
+          <p style="font-size:12px;color:#7f1d1d;margin-bottom:14px">هذه الإجراءات لا يمكن التراجع عنها وتؤثر على جميع المستخدمين.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-red btn-sm" onclick="confirmReset('dispatch','تصفير سجل الصرف')"><i class="ti ti-trash"></i> تصفير سجل الصرف</button>
+            <button class="btn btn-red btn-sm" onclick="confirmReset('recv','تصفير سجل الاستلام')"><i class="ti ti-trash"></i> تصفير سجل الاستلام</button>
+            <button class="btn btn-red btn-sm" onclick="confirmReset('stock','تصفير المخزون')"><i class="ti ti-trash"></i> تصفير المخزون الإجمالي</button>
+            <button class="btn btn-red btn-sm" onclick="confirmReset('all','تصفير كل البيانات')"><i class="ti ti-database-off"></i> تصفير كل البيانات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <h3><i class="ti ti-alert-triangle" style="color:var(--red)"></i><span id="cfm-title">تأكيد</span></h3>
+    <p id="cfm-body" style="font-size:13px;color:var(--tx2);margin-bottom:8px"></p>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-red btn-sm" id="cfm-ok">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="edit-emp-modal">
+  <div class="modal">
+    <h3><i class="ti ti-edit"></i> تعديل موظف</h3>
+    <input type="hidden" id="edit-emp-idx">
+    <div class="fg" style="margin-bottom:11px"><label>الاسم</label><input type="text" id="edit-emp-name"></div>
+    <div class="fg" style="margin-bottom:14px"><label>القسم</label>
+      <select id="edit-emp-dept">
+        <option value="القسم">القسم</option>
+        <option value="الحملات">الحملات</option>
+        <option value="مركز دمي">مركز دمي</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="closeModal('edit-emp-modal')">إلغاء</button>
+      <button class="btn btn-g btn-sm" onclick="saveEditEmp()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div id="app-footer" style="display:none;text-align:center;padding:14px;font-size:11px;color:#aaa;border-top:1px solid var(--bd);background:#fff">
+  تصميم وإعداد &nbsp;<strong style="color:#006847;font-size:12px">Hasan Alagoul</strong>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   FIREBASE CONFIG
+══════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBRwT71-WPRrEIIfG-6mnt2--QXvDOvJjw",
+  authDomain: "meal-dfd65.firebaseapp.com",
+  projectId: "meal-dfd65",
+  storageBucket: "meal-dfd65.firebasestorage.app",
+  messagingSenderId: "630056216874",
+  appId: "1:630056216874:web:c552010369ee1d2b505653",
+  measurementId: "G-2BRGZWS2KK"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ══════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════ */
+const DEPTS = ['القسم','الحملات','مركز دمي'];
+const DC = ['#006847','#0891b2','#7c3aed'];
+const BADGE = ['bg','bt','bp'];
+const BF = ['g','t','p'];
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const EMP_C = ['#006847','#c8a84b','#0891b2','#7c3aed','#dc2626','#059669','#d97706','#6366f1'];
+const ITEM_TYPES = ['وجبات','عصير','ماء'];
+const ITEM_ICONS = ['🍱','🧃','💧'];
+const ITEM_COLORS = ['#006847','#0891b2','#7c3aed'];
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let CU = null;
+let DB = {
+  users: [],
+  employees: [],
+  stock: {وجبات:0, عصير:0, ماء:0},
+  dispatchLog: [],
+  receiveLog: [],
+  adjustLog: []
+};
+let pieC=null, empC=null, dailyC=null;
+let selDI = -1;
+let vMonth = new Date().getMonth();
+let vYear = new Date().getFullYear();
+let pendingReset = '';
+let unsubs = [];
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function today(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fd(s){if(!s)return'—';const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function g(id){return document.getElementById(id);}
+function showMsg(id,type,txt){
+  const el=g(id);if(!el)return;
+  el.className='msg '+(type==='ok'?'ok':'er');
+  el.textContent=txt;el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},5000);
+}
+function setSyncStatus(status){
+  const dot=g('sync-dot'),lbl=g('sync-lbl');if(!dot)return;
+  if(status==='syncing'){dot.className='sync-dot syncing';lbl.textContent='جاري المزامنة...';}
+  else if(status==='ok'){dot.className='sync-dot';lbl.textContent='متصل ☁️';}
+  else{dot.className='sync-dot';dot.style.background='#f87171';lbl.textContent='خطأ في الاتصال';}
+}
+function totalDispByType(t){return DB.dispatchLog.filter(l=>l.itemType===t).reduce((s,l)=>s+l.qty,0);}
+function deptDispByType(di,t){return DB.dispatchLog.filter(l=>l.dept===DEPTS[di]&&l.itemType===t).reduce((s,l)=>s+l.qty,0);}
+function availByType(t){return(DB.stock[t]||0)-totalDispByType(t);}
+
+/* ══════════════════════════════════════
+   FIRESTORE — REAL-TIME LISTENERS
+══════════════════════════════════════ */
+function startListeners(){
+  // بيانات النظام (مخزون + موظفون + مستخدمون)
+  const u1=db.collection('system').doc('data').onSnapshot(snap=>{
+    if(snap.exists){
+      const d=snap.data();
+      DB.users=d.users||[{u:'admin',p:'admin123',role:'admin',full:'المدير'}];
+      DB.employees=d.employees||[];
+      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0};
+      ITEM_TYPES.forEach(t=>{if(DB.stock[t]===undefined)DB.stock[t]=0;});
+    } else {
+      // أول مرة — إنشاء البيانات الافتراضية
+      db.collection('system').doc('data').set({
+        users:[{u:'admin',p:'admin123',role:'admin',full:'المدير'}],
+        employees:[],
+        stock:{وجبات:0,عصير:0,ماء:0}
+      });
+    }
+    refreshCurrentPage();
+  },err=>setSyncStatus('error'));
+
+  // سجل الصرف
+  const u2=db.collection('dispatchLog').orderBy('ts','desc').limit(200).onSnapshot(snap=>{
+    DB.dispatchLog=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentPage();
+  });
+
+  // سجل الاستلام
+  const u3=db.collection('receiveLog').orderBy('ts','desc').limit(100).onSnapshot(snap=>{
+    DB.receiveLog=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentPage();
+  });
+
+  // سجل التعديلات
+  const u4=db.collection('adjustLog').orderBy('ts','desc').limit(100).onSnapshot(snap=>{
+    DB.adjustLog=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCurrentPage();
+  });
+
+  unsubs=[u1,u2,u3,u4];
+  setSyncStatus('ok');
+}
+
+function stopListeners(){
+  unsubs.forEach(u=>u&&u());
+  unsubs=[];
+}
+
+function refreshCurrentPage(){
+  const active=document.querySelector('.page.active');
+  if(!active)return;
+  const id=active.id.replace('page-','');
+  // لا تُحدّث صفحات الأدمن إذا لم يكن المستخدم أدمن
+  if(ADMIN_PAGES.includes(id) && CU?.role!=='admin') return;
+  const map={
+    dashboard:renderDashboard,dispatch:refreshDispatch,stock:renderStock,
+    employees:renderEmployees,users:renderUsers,reports:renderReports,settings:renderSettings
+  };
+  if(map[id])map[id]();
+}
+
+/* ══════════════════════════════════════
+   INIT — تحميل البيانات
+══════════════════════════════════════ */
+async function init(){
+  try{
+    const snap=await db.collection('system').doc('data').get();
+    if(!snap.exists){
+      // أول تشغيل — إنشاء البيانات الافتراضية
+      await db.collection('system').doc('data').set({
+        users:[{u:'admin',p:'admin123',role:'admin',full:'المدير'}],
+        employees:[],
+        stock:{وجبات:0,عصير:0,ماء:0}
+      });
+      DB.users=[{u:'admin',p:'admin123',role:'admin',full:'المدير'}];
+    } else {
+      const d=snap.data();
+      DB.users=d.users||[{u:'admin',p:'admin123',role:'admin',full:'المدير'}];
+      DB.employees=d.employees||[];
+      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0};
+      ITEM_TYPES.forEach(t=>{if(DB.stock[t]===undefined)DB.stock[t]=0;});
+    }
+    g('loader').style.display='none';
+    g('login-screen').classList.add('show');
+  } catch(e){
+    g('loader').querySelector('p').textContent='تعذّر الاتصال — تحقق من الإنترنت';
+    console.error(e);
+  }
+}
+
+/* ══════════════════════════════════════
+   LOGIN / LOGOUT
+══════════════════════════════════════ */
+function doLogin(){
+  const u=g('l-user').value.trim(), p=g('l-pass').value;
+  const found=DB.users.find(x=>x.u===u&&x.p===p);
+  if(!found){g('login-err').classList.add('show');return;}
+  g('login-err').classList.remove('show');
+  CU=found;selDI=-1;
+  g('login-screen').classList.remove('show');
+  g('app').style.display='block';
+  g('hd-username').textContent=CU.full||CU.u;
+  g('hd-date').textContent=new Date().toLocaleDateString('ar-SA',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+  // صلاحيات الأدمن
+  document.querySelectorAll('.admin-only').forEach(el=>{
+    el.style.display=CU.role==='admin'?(el.classList.contains('nav-tab')?'flex':'block'):'none';
+  });
+  g('disp-date').value=today();
+  g('stk-date').value=today();
+  vMonth=new Date().getMonth();vYear=new Date().getFullYear();
+  // إظهار الفوتر
+  const footer=g('app-footer');
+  if(footer)footer.style.display='block';
+  startListeners();
+  renderDashboard();
+}
+
+function doLogout(){
+  stopListeners();
+  CU=null;selDI=-1;
+  const footer=g('app-footer');
+  if(footer)footer.style.display='none';
+  g('app').style.display='none';
+  g('login-screen').classList.add('show');
+  g('l-user').value='';g('l-pass').value='';
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display='none');
+}
+
+/* ══════════════════════════════════════
+   PAGES
+══════════════════════════════════════ */
+// الصفحات المحظورة على غير الأدمن
+const ADMIN_PAGES=['employees','users','settings'];
+
+function showPage(id,tab){
+  // حماية صفحات الأدمن
+  if(ADMIN_PAGES.includes(id) && CU?.role!=='admin'){
+    return;
+  }
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  g('page-'+id).classList.add('active');
+  if(tab)tab.classList.add('active');
+  else{
+    // تحديث النافبار يدوياً
+    document.querySelectorAll('.nav-tab').forEach(t=>{
+      if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+id+"'"))
+        t.classList.add('active');
+    });
+  }
+  const map={
+    dashboard:renderDashboard,dispatch:renderDispatch,stock:renderStock,
+    employees:renderEmployees,users:renderUsers,reports:renderReports,settings:renderSettings
+  };
+  if(map[id])map[id]();
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+function renderDashboard(){
+  const totalAvail=ITEM_TYPES.reduce((s,t)=>s+availByType(t),0);
+  const totalRecv=ITEM_TYPES.reduce((s,t)=>s+(DB.stock[t]||0),0);
+  const totalDisp=ITEM_TYPES.reduce((s,t)=>s+totalDispByType(t),0);
+  const now=new Date();
+  const mDisp=DB.dispatchLog.filter(l=>{const p=l.date.split('-');return parseInt(p[1])-1===now.getMonth()&&parseInt(p[0])===now.getFullYear();}).reduce((s,l)=>s+l.qty,0);
+
+  if(g('db-avail'))g('db-avail').textContent=totalAvail;
+  if(g('db-recv'))g('db-recv').textContent=totalRecv;
+  if(g('db-disp'))g('db-disp').textContent=totalDisp;
+  if(g('db-month'))g('db-month').textContent=mDisp;
+
+  // أصناف
+  const iStats=g('item-stats');
+  if(iStats){
+    iStats.innerHTML=ITEM_TYPES.map((t,i)=>`
+    <div class="im">
+      <div class="im-icon">${ITEM_ICONS[i]}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px">${t}</div>
+      <div class="im-num" style="color:${ITEM_COLORS[i]}">${availByType(t)}</div>
+      <div class="im-sub">متاح | مستلم: ${DB.stock[t]||0} | مصروف: ${totalDispByType(t)}</div>
+    </div>`).join('');
+  }
+
+  // أقسام
+  const dv=DEPTS.map((_,i)=>ITEM_TYPES.reduce((s,t)=>s+deptDispByType(i,t),0));
+  const dStats=g('dept-stats');
+  if(dStats){
+    dStats.innerHTML=DEPTS.map((d,i)=>`
+    <div class="dm"><div class="dm-name"><div class="dot" style="background:${DC[i]}"></div>${d}</div>
+    <div class="dm-num">${dv[i]}</div><div class="dm-sub">وجبة مصروفة إجمالاً</div></div>`).join('');
+  }
+
+  // أشرطة
+  const mx=Math.max(...dv,1);
+  const barsEl=g('dept-bars');
+  if(barsEl){
+    barsEl.innerHTML=DEPTS.map((d,i)=>{
+      const v=dv[i],pct=Math.round(v/mx*100);
+      return`<div class="db"><div class="dn">${d}</div><div class="bw"><div class="bf ${BF[i]}" style="width:${pct}%">${v>4?v:''}</div></div><span style="font-size:11px;font-weight:700;min-width:30px;text-align:center">${v}</span></div>`;
+    }).join('');
+  }
+
+  // باي الشهر
+  const dm=DEPTS.map((_,i)=>DB.dispatchLog.filter(l=>{const p=l.date.split('-');return parseInt(p[1])-1===now.getMonth()&&parseInt(p[0])===now.getFullYear()&&l.dept===DEPTS[i];}).reduce((s,l)=>s+l.qty,0));
+  const totMD=dm.reduce((a,b)=>a+b,0)||1;
+  const pieEl=g('pieChart');
+  if(pieEl){
+    if(pieC)pieC.destroy();
+    pieC=new Chart(pieEl,{type:'doughnut',data:{labels:DEPTS,datasets:[{data:dm,backgroundColor:DC,borderWidth:3,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' وجبة'}}}}});
+  }
+  const legEl=g('pie-legend');
+  if(legEl){
+    legEl.innerHTML=DEPTS.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);margin-bottom:3px"><div style="width:10px;height:10px;border-radius:2px;background:${DC[i]};flex-shrink:0"></div>${d}: <strong>${dm[i]}</strong> (${Math.round(dm[i]/totMD*100)}%)</div>`).join('');
+  }
+
+  // موظفون
+  const et=DB.employees.map(e=>DB.dispatchLog.filter(l=>l.emp===e.name).reduce((s,l)=>s+l.qty,0));
+  const empEl=g('empChart');
+  if(empEl){
+    if(empC)empC.destroy();
+    empC=new Chart(empEl,{type:'bar',data:{labels:DB.employees.map(e=>e.name),datasets:[{label:'وجبات',data:et,backgroundColor:DB.employees.map((_,i)=>EMP_C[i%EMP_C.length]),borderRadius:5,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,font:{size:11}}},y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+  }
+}
+
+/* ══════════════════════════════════════
+   DISPATCH
+══════════════════════════════════════ */
+function renderDispatch(){
+  // بطاقات الأقسام
+  const dcEl=g('dept-cards');
+  if(dcEl){
+    dcEl.innerHTML=DEPTS.map((d,i)=>{
+      const tot=ITEM_TYPES.reduce((s,t)=>s+deptDispByType(i,t),0);
+      return`<div class="dcard${selDI===i?' sel':''}" onclick="selDept(${i})">
+        <div class="dci">${['🏥','🚑','🩸'][i]}</div>
+        <div class="dcn">${d}</div>
+        <div class="dcs">مصروف: ${tot}</div>
+      </div>`;
+    }).join('');
+  }
+  // قائمة الموظفين
+  fillEmpSel();
+  updateAvailBox();
+  renderLog();
+}
+
+function refreshDispatch(){
+  renderDispatch();
+}
+
+function selDept(i){
+  selDI=i;
+  document.querySelectorAll('.dcard').forEach((c,ci)=>c.classList.toggle('sel',ci===i));
+  updateAvailBox();
+}
+
+function updateAvailBox(){
+  const el=g('disp-avail');if(!el||selDI<0)return;
+  const t=g('disp-item')?.value||'وجبات';
+  const a=availByType(t);
+  el.textContent=a+' وحدة';
+  el.className='ab-num'+(a<=0?' empty':a<20?' low':'');
+}
+
+function fillEmpSel(){
+  const sel=g('disp-emp');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- اختر الموظف --</option>';
+  DB.employees.forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.name;o.textContent=e.name+' ('+e.dept+')';
+    sel.appendChild(o);
+  });
+  if(cur&&DB.employees.find(e=>e.name===cur))sel.value=cur;
+  // تحديث قائمة تغيير كلمة المرور
+  const cpw=g('chpw-user');
+  if(cpw){
+    cpw.innerHTML='';
+    DB.users.forEach(u=>{const o=document.createElement('option');o.value=u.u;o.textContent=(u.full||u.u)+' ('+u.u+')';cpw.appendChild(o);});
+  }
+}
+
+async function doDispatch(){
+  const di=selDI;
+  const itemType=g('disp-item')?.value||'وجبات';
+  const emp=g('disp-emp')?.value;
+  const qty=parseInt(g('disp-qty')?.value)||0;
+  const date=g('disp-date')?.value||today();
+  const note=g('disp-note')?.value||'';
+  if(di<0){showMsg('disp-msg','er','⚠ اختر القسم أولاً');return;}
+  if(!emp){showMsg('disp-msg','er','⚠ اختر الموظف');return;}
+  if(qty<1){showMsg('disp-msg','er','⚠ أدخل كمية صحيحة');return;}
+  const a=availByType(itemType);
+  if(qty>a){showMsg('disp-msg','er',`⚠ الكمية (${qty}) تتجاوز الرصيد المتاح (${a})`);return;}
+  setSyncStatus('syncing');
+  try{
+    await db.collection('dispatchLog').add({emp,dept:DEPTS[di],itemType,qty,date,note,by:CU.u,ts:firebase.firestore.FieldValue.serverTimestamp()});
+    setSyncStatus('ok');
+    showMsg('disp-msg','ok',`✓ تم صرف ${qty} (${itemType}) من ${DEPTS[di]} للموظف: ${emp}`);
+    g('disp-qty').value='';g('disp-note').value='';
+  }catch(e){setSyncStatus('error');showMsg('disp-msg','er','⚠ خطأ في الحفظ: '+e.message);}
+}
+
+function renderLog(){
+  const tb=g('log-tb');if(!tb)return;
+  if(!DB.dispatchLog.length){
+    tb.innerHTML='<tr><td colspan="5"><div class="empty-st"><i class="ti ti-inbox"></i>لا توجد عمليات صرف</div></td></tr>';return;
+  }
+  tb.innerHTML=DB.dispatchLog.slice(0,60).map(r=>{
+    const bi=DEPTS.indexOf(r.dept);
+    const ii=ITEM_TYPES.indexOf(r.itemType||'وجبات');
+    return`<tr><td><strong>${r.emp}</strong></td><td><span class="badge ${BADGE[bi]||BADGE[0]}">${r.dept}</span></td><td>${ITEM_ICONS[ii>=0?ii:0]} ${r.itemType||'وجبات'}</td><td style="font-weight:700;color:var(--g)">${r.qty}</td><td>${fd(r.date)}</td></tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   STOCK
+══════════════════════════════════════ */
+function renderStock(){
+  const totalRecv=ITEM_TYPES.reduce((s,t)=>s+(DB.stock[t]||0),0);
+  const totalDisp=ITEM_TYPES.reduce((s,t)=>s+totalDispByType(t),0);
+  const totalAvail=totalRecv-totalDisp;
+  if(g('stk-avail-big'))g('stk-avail-big').textContent=totalAvail;
+  if(g('stk-recv-tot'))g('stk-recv-tot').textContent=totalRecv;
+  if(g('stk-disp-tot'))g('stk-disp-tot').textContent=totalDisp;
+
+  // تفاصيل الأصناف
+  const det=g('stk-items-detail');
+  if(det){
+    det.innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:8px">الرصيد حسب الصنف</div>
+    <table><thead><tr><th>الصنف</th><th>مستلم</th><th>مصروف</th><th>متاح</th></tr></thead><tbody>
+    ${ITEM_TYPES.map((t,i)=>`<tr><td>${ITEM_ICONS[i]} ${t}</td><td>${DB.stock[t]||0}</td><td>${totalDispByType(t)}</td><td style="font-weight:700;color:${ITEM_COLORS[i]}">${availByType(t)}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  // سجل استلام
+  const rtb=g('recv-tb');
+  if(rtb){
+    rtb.innerHTML=DB.receiveLog.length
+      ?DB.receiveLog.slice(0,40).map(r=>{const ii=ITEM_TYPES.indexOf(r.itemType||'وجبات');return`<tr><td>${ITEM_ICONS[ii>=0?ii:0]} ${r.itemType||'وجبات'}</td><td><strong>${r.qty}</strong></td><td>${r.note}</td><td>${fd(r.date)}</td><td>${r.by||'—'}</td></tr>`}).join('')
+      :'<tr><td colspan="5"><div class="empty-st">لا توجد سجلات</div></td></tr>';
+  }
+
+  // سجل تعديلات
+  const atb=g('adj-tb');
+  if(atb){
+    const lbl={set:'ضبط',add:'إضافة',sub:'خصم'};
+    atb.innerHTML=DB.adjustLog.length
+      ?DB.adjustLog.slice(0,30).map(r=>{const ii=ITEM_TYPES.indexOf(r.itemType||'وجبات');return`<tr><td>${ITEM_ICONS[ii>=0?ii:0]} ${r.itemType||'وجبات'}</td><td><span class="badge ${r.type==='add'?'bg':r.type==='sub'?'ba':'bt'}">${lbl[r.type]}</span></td><td>${r.qty}</td><td>${r.reason}</td><td>${fd(r.date)}</td><td>${r.by||'—'}</td></tr>`}).join('')
+      :'<tr><td colspan="6"><div class="empty-st">لا توجد تعديلات</div></td></tr>';
+  }
+}
+
+async function doAddStock(){
+  const itemType=g('stk-item')?.value||'وجبات';
+  const qty=parseInt(g('stk-qty')?.value)||0;
+  const date=g('stk-date')?.value||today();
+  const note=g('stk-note')?.value||'—';
+  if(qty<1){showMsg('stk-msg','er','⚠ أدخل كمية صحيحة');return;}
+  setSyncStatus('syncing');
+  try{
+    const newStock={...DB.stock};
+    newStock[itemType]=(newStock[itemType]||0)+qty;
+    await db.collection('system').doc('data').update({stock:newStock});
+    await db.collection('receiveLog').add({itemType,qty,note,date,by:CU.u,ts:firebase.firestore.FieldValue.serverTimestamp()});
+    setSyncStatus('ok');
+    showMsg('stk-msg','ok',`✓ تمت إضافة ${qty} (${itemType}) للمخزون`);
+    g('stk-qty').value='';g('stk-note').value='';
+  }catch(e){setSyncStatus('error');showMsg('stk-msg','er','⚠ خطأ: '+e.message);}
+}
+
+async function doAdjust(){
+  const itemType=g('adj-item')?.value||'وجبات';
+  const type=g('adj-type')?.value;
+  const qty=parseInt(g('adj-qty')?.value)||0;
+  const reason=g('adj-reason')?.value?.trim();
+  if(!reason){showMsg('adj-msg','er','⚠ أدخل سبب التعديل');return;}
+  const before=DB.stock[itemType]||0;
+  const curDisp=totalDispByType(itemType);
+  let after=before;
+  const newStock={...DB.stock};
+  if(type==='set'){newStock[itemType]=qty;after=qty;}
+  else if(type==='add'){newStock[itemType]=(newStock[itemType]||0)+qty;after=before+qty;}
+  else if(type==='sub'){
+    const a=availByType(itemType);
+    if(qty>a){showMsg('adj-msg','er',`⚠ لا يمكن الخصم أكثر من الرصيد المتاح (${a})`);return;}
+    newStock[itemType]=(newStock[itemType]||0)-qty;after=before-qty;
+  }
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({stock:newStock});
+    await db.collection('adjustLog').add({itemType,type,qty,reason,before,after,date:today(),by:CU.u,ts:firebase.firestore.FieldValue.serverTimestamp()});
+    setSyncStatus('ok');
+    const newAvail=(after)-curDisp;
+    showMsg('adj-msg','ok',`✓ تم التعديل — الرصيد الجديد لـ${itemType}: ${newAvail}`);
+    g('adj-qty').value='';g('adj-reason').value='';
+  }catch(e){setSyncStatus('error');showMsg('adj-msg','er','⚠ خطأ: '+e.message);}
+}
+
+/* ══════════════════════════════════════
+   EMPLOYEES
+══════════════════════════════════════ */
+function renderEmployees(){
+  const tb=g('emp-tb');if(!tb)return;
+  tb.innerHTML=DB.employees.length
+    ?DB.employees.map((e,i)=>{
+      const bi=DEPTS.indexOf(e.dept);
+      const tot=DB.dispatchLog.filter(l=>l.emp===e.name).reduce((s,l)=>s+l.qty,0);
+      return`<tr><td>${i+1}</td><td><strong>${e.name}</strong></td><td><span class="badge ${BADGE[bi]||BADGE[0]}">${e.dept}</span></td><td style="font-weight:700;color:var(--g)">${tot}</td>
+      <td><button class="btn btn-sm" onclick="openEditEmp(${i})"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-sm btn-red" style="margin-right:4px" onclick="delEmp(${i})"><i class="ti ti-trash"></i></button></td></tr>`;
+    }).join('')
+    :'<tr><td colspan="5"><div class="empty-st"><i class="ti ti-users"></i>لا يوجد موظفون</div></td></tr>';
+  fillEmpSel();
+}
+
+async function doAddEmp(){
+  const name=g('ne-name')?.value?.trim();
+  const dept=g('ne-dept')?.value;
+  if(!name){showMsg('emp-msg','er','⚠ أدخل اسم الموظف');return;}
+  if(DB.employees.find(e=>e.name===name)){showMsg('emp-msg','er','⚠ الاسم موجود مسبقاً');return;}
+  setSyncStatus('syncing');
+  try{
+    const newEmps=[...DB.employees,{name,dept}];
+    await db.collection('system').doc('data').update({employees:newEmps});
+    setSyncStatus('ok');
+    showMsg('emp-msg','ok',`✓ تمت إضافة: ${name} — يظهر الآن في قائمة الصرف`);
+    g('ne-name').value='';
+  }catch(e){setSyncStatus('error');showMsg('emp-msg','er','⚠ خطأ: '+e.message);}
+}
+
+function openEditEmp(i){
+  const e=DB.employees[i];
+  g('edit-emp-idx').value=i;
+  g('edit-emp-name').value=e.name;
+  g('edit-emp-dept').value=e.dept;
+  g('edit-emp-modal').classList.add('show');
+}
+
+async function saveEditEmp(){
+  const i=parseInt(g('edit-emp-idx').value);
+  const name=g('edit-emp-name').value.trim();
+  const dept=g('edit-emp-dept').value;
+  if(!name)return;
+  const newEmps=[...DB.employees];
+  newEmps[i]={name,dept};
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({employees:newEmps});
+    setSyncStatus('ok');closeModal('edit-emp-modal');
+  }catch(e){setSyncStatus('error');}
+}
+
+async function delEmp(i){
+  const name=DB.employees[i].name;
+  if(DB.dispatchLog.some(l=>l.emp===name)){alert('لا يمكن حذف موظف له عمليات صرف مسجلة');return;}
+  if(!confirm(`هل تريد حذف "${name}"؟`))return;
+  const newEmps=DB.employees.filter((_,ci)=>ci!==i);
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({employees:newEmps});
+    setSyncStatus('ok');
+  }catch(e){setSyncStatus('error');}
+}
+
+/* ══════════════════════════════════════
+   USERS
+══════════════════════════════════════ */
+function renderUsers(){
+  const tb=g('users-tb');if(!tb)return;
+  tb.innerHTML=DB.users.map((u,i)=>{
+    const isMe=u.u===CU.u;
+    return`<tr><td><strong>${u.u}</strong>${isMe?'<span class="badge bg" style="margin-right:6px;font-size:10px">أنت</span>':''}</td>
+    <td><span class="badge ${u.role==='admin'?'bt':'bg'}">${u.role==='admin'?'مدير':'مستخدم'}</span></td>
+    <td>${u.full||'—'}</td>
+    <td>${!isMe?`<button class="btn btn-sm btn-red" onclick="delUser(${i})"><i class="ti ti-trash"></i></button>`:''}</td></tr>`;
+  }).join('');
+  // تحديث قائمة تغيير كلمة المرور
+  const cpw=g('chpw-user');
+  if(cpw){
+    cpw.innerHTML='';
+    DB.users.forEach(u=>{const o=document.createElement('option');o.value=u.u;o.textContent=(u.full||u.u)+' ('+u.u+')';cpw.appendChild(o);});
+  }
+}
+
+async function doAddUser(){
+  const u=g('nu-user')?.value?.trim();
+  const full=g('nu-full')?.value?.trim()||'';
+  const p=g('nu-pass')?.value;
+  const role=g('nu-role')?.value;
+  if(!u||!p){showMsg('user-msg','er','⚠ أدخل اسم المستخدم وكلمة المرور');return;}
+  if(DB.users.find(x=>x.u===u)){showMsg('user-msg','er','⚠ اسم المستخدم موجود مسبقاً');return;}
+  const newUsers=[...DB.users,{u,p,role,full:full||u}];
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({users:newUsers});
+    setSyncStatus('ok');
+    showMsg('user-msg','ok',`✓ تمت إضافة المستخدم: ${u}`);
+    g('nu-user').value='';g('nu-full').value='';g('nu-pass').value='';
+  }catch(e){setSyncStatus('error');showMsg('user-msg','er','⚠ خطأ: '+e.message);}
+}
+
+async function doChangePw(){
+  const u=g('chpw-user')?.value, p=g('chpw-pass')?.value;
+  if(!p){showMsg('chpw-msg','er','⚠ أدخل كلمة المرور الجديدة');return;}
+  const newUsers=DB.users.map(x=>x.u===u?{...x,p}:x);
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({users:newUsers});
+    setSyncStatus('ok');showMsg('chpw-msg','ok','✓ تم تغيير كلمة المرور');
+    g('chpw-pass').value='';
+  }catch(e){setSyncStatus('error');showMsg('chpw-msg','er','⚠ خطأ: '+e.message);}
+}
+
+async function delUser(i){
+  if(DB.users[i].u===CU.u){alert('لا يمكن حذف المستخدم الحالي');return;}
+  if(DB.users[i].role==='admin'&&DB.users.filter(x=>x.role==='admin').length===1){alert('يجب أن يكون هناك مدير واحد على الأقل');return;}
+  if(!confirm(`هل تريد حذف المستخدم "${DB.users[i].u}"؟`))return;
+  const newUsers=DB.users.filter((_,ci)=>ci!==i);
+  setSyncStatus('syncing');
+  try{
+    await db.collection('system').doc('data').update({users:newUsers});
+    setSyncStatus('ok');
+  }catch(e){setSyncStatus('error');}
+}
+
+/* ══════════════════════════════════════
+   REPORTS
+══════════════════════════════════════ */
+function chMonth(dir){
+  vMonth+=dir;
+  if(vMonth<0){vMonth=11;vYear--;}
+  if(vMonth>11){vMonth=0;vYear++;}
+  renderReports();
+}
+
+function renderReports(){
+  const mlbl=g('month-lbl');if(mlbl)mlbl.textContent=MONTHS[vMonth]+' '+vYear;
+  const fl=DB.dispatchLog.filter(l=>{const p=l.date.split('-');return parseInt(p[1])-1===vMonth&&parseInt(p[0])===vYear;});
+  const tot=fl.reduce((s,l)=>s+l.qty,0);
+  if(g('rep-tot'))g('rep-tot').textContent=tot;
+
+  const dm=DEPTS.map((_,i)=>fl.filter(l=>l.dept===DEPTS[i]).reduce((s,l)=>s+l.qty,0));
+  const im=ITEM_TYPES.map(t=>fl.filter(l=>l.itemType===t).reduce((s,l)=>s+l.qty,0));
+
+  if(tot>0){
+    const empTots=DB.employees.map(e=>fl.filter(l=>l.emp===e.name).reduce((s,l)=>s+l.qty,0));
+    const mxEI=empTots.indexOf(Math.max(...empTots));
+    if(g('rep-emp'))g('rep-emp').textContent=DB.employees[mxEI]?.name||'—';
+    if(g('rep-dept'))g('rep-dept').textContent=DEPTS[dm.indexOf(Math.max(...dm))];
+  } else {
+    if(g('rep-emp'))g('rep-emp').textContent='—';
+    if(g('rep-dept'))g('rep-dept').textContent='—';
+  }
+
+  // أقسام
+  const drEl=g('rep-dept-row');
+  if(drEl)drEl.innerHTML=DEPTS.map((d,i)=>`<div class="dm"><div class="dm-name"><div class="dot" style="background:${DC[i]}"></div>${d}</div><div class="dm-num">${dm[i]}</div><div class="dm-sub">وجبة هذا الشهر</div></div>`).join('');
+
+  // أصناف
+  const irEl=g('rep-item-row');
+  if(irEl)irEl.innerHTML=ITEM_TYPES.map((t,i)=>`<div class="im"><div class="im-icon">${ITEM_ICONS[i]}</div><div style="font-size:10px;color:var(--tx2)">${t}</div><div class="im-num">${im[i]}</div><div class="im-sub">هذا الشهر</div></div>`).join('');
+
+  // تفاصيل
+  const em={};
+  fl.forEach(l=>{
+    const k=l.emp+'|'+l.dept+'|'+(l.itemType||'وجبات');
+    if(!em[k])em[k]={emp:l.emp,dept:l.dept,itemType:l.itemType||'وجبات',count:0,total:0};
+    em[k].count++;em[k].total+=l.qty;
+  });
+  const rows=Object.values(em).sort((a,b)=>b.total-a.total);
+  const tb=g('rep-tb');
+  if(tb){
+    if(!rows.length){
+      tb.innerHTML='<tr><td colspan="5"><div class="empty-st"><i class="ti ti-calendar-off"></i>لا يوجد صرف في هذا الشهر</div></td></tr>';
+    } else {
+      tb.innerHTML=rows.map(r=>{
+        const bi=DEPTS.indexOf(r.dept),ii=ITEM_TYPES.indexOf(r.itemType);
+        return`<tr><td><strong>${r.emp}</strong></td><td><span class="badge ${BADGE[bi]||BADGE[0]}">${r.dept}</span></td><td>${ITEM_ICONS[ii>=0?ii:0]} ${r.itemType}</td><td>${r.count}</td><td style="font-weight:700;color:var(--g)">${r.total}</td></tr>`;
+      }).join('');
+      const tr=document.createElement('tr');tr.className='total-row';
+      tr.innerHTML=`<td colspan="4" style="font-weight:700">الإجمالي الكلي</td><td style="font-size:14px">${tot}</td>`;
+      tb.appendChild(tr);
+    }
+  }
+
+  // رسم يومي
+  const days=new Date(vYear,vMonth+1,0).getDate();
+  const dd=Array(days).fill(0);
+  fl.forEach(l=>{const d=parseInt(l.date.split('-')[2]);if(d>=1&&d<=days)dd[d-1]+=l.qty;});
+  const dcEl=g('dailyChart');
+  if(dcEl){
+    if(dailyC)dailyC.destroy();
+    dailyC=new Chart(dcEl,{type:'bar',data:{labels:Array.from({length:days},(_,i)=>i+1),datasets:[{label:'وجبات',data:dd,backgroundColor:'rgba(0,104,71,0.75)',borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:true,maxTicksLimit:16,font:{size:10}}},y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+  }
+}
+
+/* ══════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════ */
+function renderSettings(){
+  if(g('inf-d'))g('inf-d').textContent=DB.dispatchLog.length;
+  if(g('inf-r'))g('inf-r').textContent=DB.receiveLog.length;
+  if(g('inf-e'))g('inf-e').textContent=DB.employees.length;
+  if(g('inf-u'))g('inf-u').textContent=DB.users.length;
+}
+
+/* ══════════════════════════════════════
+   RESET
+══════════════════════════════════════ */
+function confirmReset(type,title){
+  pendingReset=type;
+  g('cfm-title').textContent=title;
+  g('cfm-body').textContent=`هل أنت متأكد من "${title}"؟ سيؤثر على جميع المستخدمين ولا يمكن التراجع.`;
+  g('cfm-ok').onclick=doReset;
+  g('confirm-modal').classList.add('show');
+}
+
+async function doReset(){
+  closeModal();
+  setSyncStatus('syncing');
+  try{
+    const batch=db.batch();
+    if(pendingReset==='dispatch'||pendingReset==='all'||pendingReset==='stock'){
+      const snap=await db.collection('dispatchLog').get();
+      snap.docs.forEach(d=>batch.delete(d.ref));
+    }
+    if(pendingReset==='recv'||pendingReset==='all'||pendingReset==='stock'){
+      const snap=await db.collection('receiveLog').get();
+      snap.docs.forEach(d=>batch.delete(d.ref));
+    }
+    if(pendingReset==='stock'||pendingReset==='all'){
+      const snap2=await db.collection('adjustLog').get();
+      snap2.docs.forEach(d=>batch.delete(d.ref));
+      batch.update(db.collection('system').doc('data'),{stock:{وجبات:0,عصير:0,ماء:0}});
+    }
+    await batch.commit();
+    setSyncStatus('ok');
+    renderSettings();
+  }catch(e){setSyncStatus('error');alert('خطأ: '+e.message);}
+}
+
+/* ══════════════════════════════════════
+   MODALS
+══════════════════════════════════════ */
+function closeModal(id='confirm-modal'){
+  g(id).classList.remove('show');
+}
+
+/* ══════════════════════════════════════
+   START
+══════════════════════════════════════ */
+init();
+
+/* ══════════════════════════════════════
+   PWA — Install Prompt
+══════════════════════════════════════ */
+let deferredPrompt=null;
+
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  // إظهار زر التثبيت
+  const btn=document.getElementById('pwa-install-btn');
+  if(btn)btn.style.display='flex';
+});
+
+window.addEventListener('appinstalled',()=>{
+  deferredPrompt=null;
+  const btn=document.getElementById('pwa-install-btn');
+  if(btn)btn.style.display='none';
+});
+
+function installPWA(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});
+  }
+}
+
+// Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    const swCode=`
+const CACHE='meal-inv-v1';
+const ASSETS=['./',
+  'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'
+];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  // Firebase requests — always network
+  if(e.request.url.includes('firebase')||e.request.url.includes('firestore')){
+    e.respondWith(fetch(e.request));
+    return;
+  }
+  e.respondWith(
+    caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+      if(res&&res.status===200&&res.type==='basic'){
+        const clone=res.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,clone));
+      }
+      return res;
+    }))
+  );
+});`;
+    const blob=new Blob([swCode],{type:'application/javascript'});
+    const swUrl=URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
