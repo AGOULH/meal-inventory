@@ -88,7 +88,7 @@ body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:v
 .dm-name .dot{width:9px;height:9px;border-radius:50%}
 .dm-num{font-size:24px;font-weight:800;color:var(--tx);line-height:1}
 .dm-sub{font-size:10px;color:var(--tx2);margin-top:2px}
-.item-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.item-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .im{border-radius:10px;border:1px solid var(--bd);padding:13px 15px;background:#fff;text-align:center}
 .im-icon{font-size:24px;margin-bottom:4px}
 .im-num{font-size:22px;font-weight:700;line-height:1}
@@ -247,6 +247,7 @@ select:focus,input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px
               <option value="وجبات">🍱 وجبات</option>
               <option value="عصير">🧃 عصير</option>
               <option value="ماء">💧 ماء</option>
+              <option value="سناك">🍪 سناك</option>
             </select>
           </div>
           <div class="fg"><label>اسم الموظف *</label><select id="disp-emp"><option value="">-- اختر --</option></select></div>
@@ -276,6 +277,7 @@ select:focus,input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px
             <option value="وجبات">🍱 وجبات</option>
             <option value="عصير">🧃 عصير</option>
             <option value="ماء">💧 ماء</option>
+            <option value="سناك">🍪 سناك</option>
           </select>
         </div>
         <div class="fr">
@@ -306,6 +308,7 @@ select:focus,input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px
               <option value="وجبات">🍱 وجبات</option>
               <option value="عصير">🧃 عصير</option>
               <option value="ماء">💧 ماء</option>
+              <option value="سناك">🍪 سناك</option>
             </select>
           </div>
           <div class="fg"><label>نوع التعديل</label>
@@ -487,13 +490,13 @@ const BADGE = ['bg','bt','bp'];
 const BF = ['g','t','p'];
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const EMP_C = ['#006847','#c8a84b','#0891b2','#7c3aed','#dc2626','#059669','#d97706','#6366f1'];
-const ITEM_TYPES = ['وجبات','عصير','ماء'];
-const ITEM_ICONS = ['🍱','🧃','💧'];
-const ITEM_COLORS = ['#006847','#0891b2','#7c3aed'];
+const ITEM_TYPES = ['وجبات','عصير','ماء','سناك'];
+const ITEM_ICONS = ['🍱','🧃','💧','🍪'];
+const ITEM_COLORS = ['#006847','#0891b2','#7c3aed','#d97706'];
 const ADMIN_PAGES = ['users','settings'];
 
 let CU = null;
-let DB = { users:[], stock:{وجبات:0,عصير:0,ماء:0}, dispatchLog:[], receiveLog:[], adjustLog:[] };
+let DB = { users:[], stock:{وجبات:0,عصير:0,ماء:0,سناك:0}, dispatchLog:[], receiveLog:[], adjustLog:[] };
 let pieC=null, empC=null, dailyC=null;
 let selDI = -1;
 let vMonth = new Date().getMonth();
@@ -517,10 +520,10 @@ function startListeners(){
     if(snap.exists){
       const d=snap.data();
       DB.users=d.users||[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}];
-      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0};
+      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0,سناك:0};
       ITEM_TYPES.forEach(t=>{if(DB.stock[t]===undefined)DB.stock[t]=0;});
     } else {
-      db.collection('system').doc('data').set({users:[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}],stock:{وجبات:0,عصير:0,ماء:0}});
+      db.collection('system').doc('data').set({users:[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}],stock:{وجبات:0,عصير:0,ماء:0,سناك:0}});
     }
     refreshCurrentPage();
   },err=>setSyncStatus('error'));
@@ -543,12 +546,12 @@ async function init(){
   try{
     const snap=await db.collection('system').doc('data').get();
     if(!snap.exists){
-      await db.collection('system').doc('data').set({users:[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}],stock:{وجبات:0,عصير:0,ماء:0}});
+      await db.collection('system').doc('data').set({users:[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}],stock:{وجبات:0,عصير:0,ماء:0,سناك:0}});
       DB.users=[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}];
     } else {
       const d=snap.data();
       DB.users=d.users||[{u:'admin',p:'admin123',role:'admin',full:'المدير',dept:'القسم'}];
-      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0};
+      DB.stock=d.stock||{وجبات:0,عصير:0,ماء:0,سناك:0};
       ITEM_TYPES.forEach(t=>{if(DB.stock[t]===undefined)DB.stock[t]=0;});
     }
     g('loader').style.display='none';
@@ -830,7 +833,7 @@ async function doReset(){
     const batch=db.batch();
     if(pendingReset==='dispatch'||pendingReset==='all'||pendingReset==='stock'){const snap=await db.collection('dispatchLog').get();snap.docs.forEach(d=>batch.delete(d.ref));}
     if(pendingReset==='recv'||pendingReset==='all'||pendingReset==='stock'){const snap=await db.collection('receiveLog').get();snap.docs.forEach(d=>batch.delete(d.ref));}
-    if(pendingReset==='stock'||pendingReset==='all'){const snap2=await db.collection('adjustLog').get();snap2.docs.forEach(d=>batch.delete(d.ref));batch.update(db.collection('system').doc('data'),{stock:{وجبات:0,عصير:0,ماء:0}});}
+    if(pendingReset==='stock'||pendingReset==='all'){const snap2=await db.collection('adjustLog').get();snap2.docs.forEach(d=>batch.delete(d.ref));batch.update(db.collection('system').doc('data'),{stock:{وجبات:0,عصير:0,ماء:0,سناك:0}});}
     await batch.commit();setSyncStatus('ok');renderSettings();
   }catch(e){setSyncStatus('error');alert('خطأ: '+e.message);}
 }
